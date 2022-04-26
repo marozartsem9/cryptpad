@@ -426,24 +426,11 @@ define([
     funcs.handleNewFile = function (waitFor, config) {
         if (window.__CRYPTPAD_TEST__) { return; }
         var priv = ctx.metadataMgr.getPrivateData();
-        if (priv.isNewFile) {
+        if (true) {
             var c = (priv.settings.general && priv.settings.general.creation) || {};
             // If this is a new file but we have a hash in the URL and pad creation screen is
             // not displayed, then display an error...
-            if (priv.isDeleted && !funcs.isLoggedIn()) {
-                UI.errorLoadingScreen(Messages.inactiveError, false, function () {
-                    UI.addLoadingScreen();
-                    return void funcs.createPad({}, waitFor());
-                });
-                return;
-            }
-            // Otherwise, if we don't display the screen, it means it is not a deleted pad
-            // so we can continue and start realtime...
-            if (!funcs.isLoggedIn()) {
-                return void funcs.createPad(c, waitFor());
-            }
-            // If we display the pad creation screen, it will handle deleted pads directly
-            funcs.getPadCreationScreen(c, config, waitFor());
+            funcs.createPad(c, waitFor());
             return;
         }
         if (priv.burnAfterReading) {

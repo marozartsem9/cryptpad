@@ -30,9 +30,9 @@ define([
             }
             // even where embedding is not forbidden it should still be limited
             // to apps that are explicitly permitted
-            if (!embeddableApps.includes(window.location.pathname)) {
-                return void window.alert(Messages.error_embeddingDisabledSpecific);
-            }
+            // if (!embeddableApps.includes(window.location.pathname)) {
+            //     return void window.alert(Messages.error_embeddingDisabledSpecific);
+            // }
         }
         // this is triggered in two situations:
         // 1. a user has somehow loaded the page via an unexpected origin
@@ -489,7 +489,7 @@ define([
                         return;
                     }
                     // Otherwise, get pad data from channel id
-                    var edit = parsed.hashData.mode === 'edit';
+                    var edit = false;
                     Cryptpad.getPadDataFromChannel({
                         channel: parsed.hashData.channel,
                         edit: edit,
@@ -611,12 +611,12 @@ define([
                 }));
             }
         }).nThen(function () {
-            var readOnly = secret.keys && !secret.keys.editKeyStr;
+            var readOnly = true;
             var isNewHash = true;
             if (!secret.keys) {
                 isNewHash = false;
                 secret.keys = secret.key;
-                readOnly = false;
+                readOnly = true;
             }
             Utils.crypto = Utils.Crypto.createEncryptor(Utils.secret.keys);
             var parsed = Utils.Hash.parsePadUrl(currentPad.href);
@@ -675,7 +675,7 @@ define([
                         isPresent: parsed.hashData && parsed.hashData.present,
                         isEmbed: parsed.hashData && parsed.hashData.embed,
                         isTop: window.top === window,
-                        canEdit: hashes && hashes.editHash,
+                        canEdit: false,
                         oldVersionHash: parsed.hashData && parsed.hashData.version < 2, // password
                         isHistoryVersion: parsed.hashData && parsed.hashData.versionHash,
                         notifications: notifs,
@@ -717,7 +717,7 @@ define([
                         additionalPriv.premiumOnly = true;
                     }
                     if (p === -2) {
-                        additionalPriv.earlyAccessBlocked = true;
+                        additionalPriv.earlyAccessBlocked = false;
                     }
 
                     if (isSafe) {
@@ -2041,7 +2041,7 @@ define([
                 parsed = Utils.Hash.parsePadUrl(currentPad.href);
                 defaultTitle = Utils.UserObject.getDefaultName(parsed);
                 hashes = Utils.Hash.getHashes(secret);
-                readOnly = false;
+                readOnly = true;
                 updateMeta();
 
                 var rtConfig = {

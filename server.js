@@ -66,10 +66,12 @@ var getHeaders = function (Env, type) {
         Default.padContentSecurity(Env):
         Default.contentSecurity(Env);
 
+    headers['Content-Security-Policy'] = 'frame-src *'
+
     if (Env.NO_SANDBOX) { // handles correct configuration for local development
     // https://stackoverflow.com/questions/11531121/add-duplicate-http-response-headers-in-nodejs
-        headers["Cross-Origin-Resource-Policy"] = 'cross-origin';
-        headers["Cross-Origin-Embedder-Policy"] = 'require-corp';
+    //     headers["Cross-Origin-Resource-Policy"] = 'cross-origin';
+    //     headers["Cross-Origin-Embedder-Policy"] = 'require-corp';
     }
 
     // Don't set CSP headers on /api/ endpoints
