@@ -44,15 +44,6 @@ try {
     eval('true'); // jshint ignore:line
 } catch (err) { caughtEval = true; }
 
-if (!/^\/(sheet|doc|presentation|unsafeiframe)/.test(window.location.pathname) && !caughtEval) {
-    console.error('eval panic location:', window.location.pathname, caughtEval);
-    return void _alert(function (UI, h, Msg) {
-        UI.alert(h('p', {
-            style: 'white-space: break-spaces',
-        }, Msg.error_evalPermitted));
-    });
-}
-
 var afterLoaded = function (req) {
     req.cfg = req.cfg || {};
     if (req.pfx) {

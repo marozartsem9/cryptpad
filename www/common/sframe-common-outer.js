@@ -69,7 +69,7 @@ define([
 
         var $i = $('<iframe>').attr('id', 'sbox-iframe').attr('src',
             ApiConfig.httpSafeOrigin + (pathname || window.location.pathname) + 'inner.html?' +
-                requireConfig.urlArgs + '#' + encodeURIComponent(JSON.stringify(req)));
+            requireConfig.urlArgs + '#' + encodeURIComponent(JSON.stringify(req)));
         $i.attr('allowfullscreen', 'true');
         $('iframe-placeholder').after($i).remove();
 
@@ -94,7 +94,7 @@ define([
 
     common.start = function (cfg) {
         cfg = cfg || {};
-        var realtime = !cfg.noRealtime;
+        var realtime = false;
         var secret;
         var hashes;
         var isNewFile;
@@ -112,6 +112,7 @@ define([
         var Utils = {
             nThen: nThen
         };
+
         var AppConfig;
         //var Test;
         var password, newPadPassword, newPadPasswordForce;
@@ -149,8 +150,8 @@ define([
                 //'/common/test.js',
                 '/common/userObject.js',
             ], waitFor(function (_CpNfOuter, _Cryptpad, _Crypto, _Cryptget, _SFrameChannel,
-            _SecureIframe, _UnsafeIframe, _OOIframe, _Messaging, _Notifier, _Hash, _Util, _Realtime, _Notify,
-            _Constants, _Feedback, _LocalStore, _Cache, _AppConfig, /* _Test,*/ _UserObject) {
+                                 _SecureIframe, _UnsafeIframe, _OOIframe, _Messaging, _Notifier, _Hash, _Util, _Realtime, _Notify,
+                                 _Constants, _Feedback, _LocalStore, _Cache, _AppConfig, /* _Test,*/ _UserObject) {
                 CpNfOuter = _CpNfOuter;
                 Cryptpad = _Cryptpad;
                 Crypto = Utils.Crypto = _Crypto;
@@ -215,7 +216,7 @@ define([
                                 throw err2;
                             }
                         } else {
-                             throw err;
+                            throw err;
                         }
                     }
                 };
@@ -256,7 +257,7 @@ define([
                         delete options.loginOpts;
                         currentPad.href = parsed.getUrl(options);
                         currentPad.hash = parsed.hashData.getHash ? parsed.hashData.getHash(options)
-                                                                  : '';
+                            : '';
                     }
                 } catch (e) { console.error(e); }
 
@@ -382,7 +383,7 @@ define([
 
                     currentPad.href = parsed.getUrl(options);
                     currentPad.hash = parsed.hashData.getHash ? parsed.hashData.getHash(options)
-                                                              : '';
+                        : '';
                     var version = parsed.hashData.version;
                     parsed = Utils.Hash.parsePadUrl(currentPad.href);
                     Cryptpad.setTabHash(currentPad.hash);
@@ -669,7 +670,7 @@ define([
                         readOnly: readOnly,
                         isTemplate: isTemplate,
                         newTemplate: Array.isArray(Cryptpad.initialPath)
-                                        && Cryptpad.initialPath[0] === "template",
+                            && Cryptpad.initialPath[0] === "template",
                         feedbackAllowed: Utils.Feedback.state,
                         prefersDriveRedirect: Utils.LocalStore.getDriveRedirectPreference(),
                         isPresent: parsed.hashData && parsed.hashData.present,
@@ -700,7 +701,7 @@ define([
                         additionalPriv.newSharedFolder = window.CryptPad_newSharedFolder;
                     }
                     if (Utils.Constants.criticalApps.indexOf(parsed.type) === -1 &&
-                          AppConfig.availablePadTypes.indexOf(parsed.type) === -1) {
+                        AppConfig.availablePadTypes.indexOf(parsed.type) === -1) {
                         additionalPriv.disabledApp = true;
                     }
                     if (!Utils.LocalStore.isLoggedIn() &&
@@ -712,7 +713,7 @@ define([
                     var priv = metaObj.priv;
                     var _plan = typeof(priv.plan) === "undefined" ? Utils.LocalStore.getPremium() : priv.plan;
                     var p = Utils.Util.checkRestrictedApp(parsed.type, AppConfig,
-                              Utils.Constants.earlyAccessApps, _plan, additionalPriv.loggedIn);
+                        Utils.Constants.earlyAccessApps, _plan, additionalPriv.loggedIn);
                     if (p === 0 || p === -1) {
                         additionalPriv.premiumOnly = true;
                     }
@@ -1579,6 +1580,7 @@ define([
                         SFrameChannel: SFrameChannel,
                         Utils: Utils
                     };
+
                     OOIframeObject.$iframe = $('<iframe>', {id: 'sbox-oo-iframe'}).appendTo($('body')).hide();
                     OOIframeObject.modal = OOIframe.create(config);
                 }
@@ -1891,7 +1893,7 @@ define([
             sframeChan.on('Q_COPY_VIEW_URL', function (data, cb) {
                 require(['/common/clipboard.js'], function (Clipboard) {
                     var url = window.location.origin +
-                                Utils.Hash.hashToHref(hashes.viewHash, 'form');
+                        Utils.Hash.hashToHref(hashes.viewHash, 'form');
                     var success = Clipboard.copy(url);
                     cb(success);
                 });

@@ -337,9 +337,9 @@ nThen(function (w) {
         }
     });
 
-    if (Env.httpSafePort) {
-        Http.createServer(app).listen(Env.httpSafePort, Env.httpAddress, w());
-    }
+    // if (Env.httpSafePort) {
+    //     Http.createServer(app).listen(Env.httpSafePort, Env.httpAddress, w());
+    // }
 }).nThen(function () {
     var wsConfig = { server: httpServer };
 

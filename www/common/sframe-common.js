@@ -628,11 +628,11 @@ define([
         return ctx.cache;
     };
 
-/*    funcs.storeLinkToClipboard = function (readOnly, cb) {
-        ctx.sframeChan.query('Q_STORE_LINK_TO_CLIPBOARD', readOnly, function (err) {
-            if (cb) { cb(err); }
-        });
-    }; */
+    /*    funcs.storeLinkToClipboard = function (readOnly, cb) {
+			ctx.sframeChan.query('Q_STORE_LINK_TO_CLIPBOARD', readOnly, function (err) {
+				if (cb) { cb(err); }
+			});
+		}; */
 
     funcs.getPad = function (data, cb) {
         ctx.sframeChan.query("Q_CRYPTGET", data, function (err, obj) {
@@ -718,7 +718,7 @@ define([
     funcs.isAdmin = function () {
         var privateData = ctx.metadataMgr.getPrivateData();
         return privateData.edPublic && Array.isArray(ApiConfig.adminKeys) &&
-                ApiConfig.adminKeys.indexOf(privateData.edPublic) !== -1;
+            ApiConfig.adminKeys.indexOf(privateData.edPublic) !== -1;
     };
 
     funcs.checkRestrictedApp = function (app) {
@@ -732,240 +732,240 @@ define([
     Object.freeze(funcs);
     return { create: function (cb) {
 
-        if (window.CryptPad_sframe_common) {
-            throw new Error("Sframe-common should only be created once");
-        }
-        window.CryptPad_sframe_common = true;
+            if (window.CryptPad_sframe_common) {
+                throw new Error("Sframe-common should only be created once");
+            }
+            window.CryptPad_sframe_common = true;
 
-        if (window.CryptPad_updateLoadingProgress) {
-            window.CryptPad_updateLoadingProgress({
-                type: 'drive',
-                progress: 0
-            });
-        }
+            if (window.CryptPad_updateLoadingProgress) {
+                window.CryptPad_updateLoadingProgress({
+                    type: 'drive',
+                    progress: 0
+                });
+            }
 
-        nThen(function (waitFor) {
-            var msgEv = Util.mkEvent();
-            var iframe = window.parent;
-            window.addEventListener('message', function (msg) {
-                if (msg.source !== iframe) { return; }
-                msgEv.fire(msg);
-            });
-            var postMsg = function (data) {
-                iframe.postMessage(data, ApiConfig.httpUnsafeOrigin);
-            };
-            SFrameChannel.create(msgEv, postMsg, waitFor(function (sfc) { ctx.sframeChan = sfc; }));
-        }).nThen(function (waitFor) {
-            localForage.clear();
-            Language.applyTranslation();
-
-            ctx.metadataMgr = MetadataMgr.create(ctx.sframeChan);
-
-            ctx.sframeChan.whenReg('EV_CACHE_PUT', function () {
-                if (Object.keys(window.cryptpadCache.updated).length) {
-                    ctx.sframeChan.event('EV_CACHE_PUT', window.cryptpadCache.updated);
-                }
-                window.cryptpadCache._put = window.cryptpadCache.put;
-                window.cryptpadCache.put = function (k, v, cb) {
-                    window.cryptpadCache._put(k, v, cb);
-                    var x = {};
-                    x[k] = v;
-                    ctx.sframeChan.event('EV_CACHE_PUT', x);
+            nThen(function (waitFor) {
+                var msgEv = Util.mkEvent();
+                var iframe = window.parent;
+                window.addEventListener('message', function (msg) {
+                    if (msg.source !== iframe) { return; }
+                    msgEv.fire(msg);
+                });
+                var postMsg = function (data) {
+                    iframe.postMessage(data, ApiConfig.httpUnsafeOrigin);
                 };
-            });
-            ctx.sframeChan.whenReg('EV_LOCALSTORE_PUT', function () {
-                if (Object.keys(window.cryptpadStore.updated).length) {
-                    ctx.sframeChan.event('EV_LOCALSTORE_PUT', window.cryptpadStore.updated);
-                }
-                window.cryptpadStore._put = window.cryptpadStore.put;
-                window.cryptpadStore.put = function (k, v, cb) {
-                    window.cryptpadStore._put(k, v, cb);
-                    var x = {};
-                    x[k] = v;
-                    ctx.sframeChan.event('EV_LOCALSTORE_PUT', x, {raw:true});
-                };
-            });
+                SFrameChannel.create(msgEv, postMsg, waitFor(function (sfc) { ctx.sframeChan = sfc; }));
+            }).nThen(function (waitFor) {
+                localForage.clear();
+                Language.applyTranslation();
 
-            UI.addTooltips();
+                ctx.metadataMgr = MetadataMgr.create(ctx.sframeChan);
 
-            ctx.sframeChan.on("EV_PAD_NODATA", function () {
-                var error = Pages.setHTML(h('span'), Messages.safeLinks_error);
-                var i = error.querySelector('i');
-                if (i) { i.classList = 'fa fa-shhare-alt'; }
-                var a = error.querySelector('a');
-                if (a) {
-                    a.setAttribute('href', Pages.localizeDocsLink("https://docs.cryptpad.fr/en/user_guide/user_account.html#confidentiality"));
-                }
-                UI.errorLoadingScreen(error);
-            });
-
-            ctx.sframeChan.on("EV_PAD_PASSWORD", function (cfg) {
-                UIElements.displayPasswordPrompt(funcs, cfg);
-            });
-
-            ctx.sframeChan.on("EV_RESTRICTED_ERROR", function () {
-                UI.errorLoadingScreen(Messages.restrictedError);
-            });
-
-            ctx.sframeChan.on("EV_PAD_PASSWORD_ERROR", function () {
-                UI.errorLoadingScreen(Messages.password_error_seed);
-            });
-
-            ctx.sframeChan.on("EV_POPUP_BLOCKED", function () {
-                UI.alert(Messages.errorPopupBlocked);
-            });
-
-            ctx.sframeChan.on("EV_EXPIRED_ERROR", function () {
-                funcs.onServerError({
-                    type: 'EEXPIRED'
-                });
-            });
-
-            ctx.sframeChan.on('EV_LOADING_INFO', function (data) {
-                //UI.updateLoadingProgress(data, 'drive');
-                UI.updateLoadingProgress(data);
-            });
-
-            ctx.sframeChan.on('EV_NEW_VERSION', function () {
-                // TODO lock the UI and do the same in non-framework apps
-                var $err = $('<div>').append(Messages.newVersionError);
-                $err.find('a').click(function () {
-                    funcs.gotoURL();
-                });
-                UI.findOKButton().click(); // FIXME this might be randomly clicking something dangerous...
-                UI.errorLoadingScreen($err, true, true);
-            });
-
-            ctx.sframeChan.on('EV_AUTOSTORE_DISPLAY_POPUP', function (data) {
-                UIElements.displayStorePadPopup(funcs, data);
-            });
-
-            ctx.sframeChan.on('EV_LOADING_ERROR', function (err) {
-                var msg = err;
-                if (err === 'DELETED') {
-                    msg = Messages.deletedError + '<br>' + Messages.errorRedirectToHome;
-                }
-                if (err === "INVALID_HASH") {
-                    msg = Messages.invalidHashError;
-                }
-                UI.errorLoadingScreen(msg, false, function () {
-                    funcs.gotoURL('/drive/');
-                });
-            });
-
-            ctx.sframeChan.on('EV_UNIVERSAL_EVENT', function (obj) {
-                var type = obj.type;
-                if (!type || !modules[type]) { return; }
-                modules[type].fire(obj.data);
-            });
-
-            ctx.cache = Cache.create(ctx.sframeChan);
-
-            ctx.metadataMgr.onReady(waitFor());
-
-        }).nThen(function () {
-            var privateData = ctx.metadataMgr.getPrivateData();
-            funcs.addShortcuts(window, Boolean(privateData.app));
-
-            var mt = Util.find(privateData, ['settings', 'general', 'mediatag-size']);
-            if (MT.MediaTag && typeof(mt) === "number") {
-                var maxMtSize = mt === -1 ? Infinity : mt * 1024 * 1024;
-                MT.MediaTag.setDefaultConfig('maxDownloadSize', maxMtSize);
-            }
-
-            if (MT.MediaTag && ctx.cache) {
-                MT.MediaTag.setDefaultConfig('Cache', ctx.cache);
-            }
-
-            try {
-                var feedback = privateData.feedbackAllowed;
-                Feedback.init(feedback);
-            } catch (e) { Feedback.init(false); }
-
-            if (privateData.secureIframe) {
-                UI.log = function (msg) { ctx.sframeChan.event('EV_ALERTIFY_LOG', msg); };
-                UI.warn = function (msg) { ctx.sframeChan.event('EV_ALERTIFY_WARN', msg); };
-            } else {
-                ctx.sframeChan.on('EV_ALERTIFY_LOG', function (msg) { UI.log(msg); });
-                ctx.sframeChan.on('EV_ALERTIFY_WARN', function (msg) { UI.warn(msg); });
-            }
-
-            try {
-                var forbidden = privateData.disabledApp;
-                if (forbidden) {
-                    UI.alert(Messages.disabledApp, function () {
-                        funcs.gotoURL('/drive/');
-                    }, {forefront: true});
-                    return;
-                }
-                var mustLogin = privateData.registeredOnly;
-                if (mustLogin) {
-                    UI.alert(Messages.mustLogin, function () {
-                        funcs.setLoginRedirect('login');
-                    }, {forefront: true});
-                    return;
-                }
-                var blocked = privateData.premiumOnly && privateData.isNewFile;
-                if (blocked) {
-                    var domain = ApiConfig.httpUnsafeOrigin || 'CryptPad';
-                    if (/^http/.test(domain)) { domain = domain.replace(/^https?\:\/\//, ''); }
-                    UI.errorLoadingScreen(Messages._getKey('premiumOnly', [domain]), null, function () {
-                        funcs.gotoURL('/drive/');
-                    }, {forefront: true});
-                    return;
-                }
-                if (privateData.earlyAccessBlocked) {
-                    UI.errorLoadingScreen(Messages.earlyAccessBlocked, null, function () {
-                        funcs.gotoURL('/drive/');
-                    }, {forefront: true});
-                    return;
-
-                }
-            } catch (e) {
-                console.error("Can't check permissions for the app");
-            }
-
-            try {
-                window.CP_DEV_MODE = privateData.devMode;
-            } catch (e) {}
-
-            ctx.sframeChan.on('EV_LOGOUT', function () {
-                $(window).on('keyup', function (e) {
-                    if (e.keyCode === 27) {
-                        UI.removeLoadingScreen();
+                ctx.sframeChan.whenReg('EV_CACHE_PUT', function () {
+                    if (Object.keys(window.cryptpadCache.updated).length) {
+                        ctx.sframeChan.event('EV_CACHE_PUT', window.cryptpadCache.updated);
                     }
+                    window.cryptpadCache._put = window.cryptpadCache.put;
+                    window.cryptpadCache.put = function (k, v, cb) {
+                        window.cryptpadCache._put(k, v, cb);
+                        var x = {};
+                        x[k] = v;
+                        ctx.sframeChan.event('EV_CACHE_PUT', x);
+                    };
                 });
-                UI.addLoadingScreen({hideTips: true});
-                var origin = privateData.origin;
-                var href = origin + "/login/";
-                var onLogoutMsg = Messages._getKey('onLogout', ['<a href="' + href + '" target="_blank">', '</a>']);
-                UI.errorLoadingScreen(onLogoutMsg, true);
-                logoutHandlers.forEach(function (h) {
-                    if (typeof (h) === "function") { h(); }
+                ctx.sframeChan.whenReg('EV_LOCALSTORE_PUT', function () {
+                    if (Object.keys(window.cryptpadStore.updated).length) {
+                        ctx.sframeChan.event('EV_LOCALSTORE_PUT', window.cryptpadStore.updated);
+                    }
+                    window.cryptpadStore._put = window.cryptpadStore.put;
+                    window.cryptpadStore.put = function (k, v, cb) {
+                        window.cryptpadStore._put(k, v, cb);
+                        var x = {};
+                        x[k] = v;
+                        ctx.sframeChan.event('EV_LOCALSTORE_PUT', x, {raw:true});
+                    };
                 });
+
+                UI.addTooltips();
+
+                ctx.sframeChan.on("EV_PAD_NODATA", function () {
+                    var error = Pages.setHTML(h('span'), Messages.safeLinks_error);
+                    var i = error.querySelector('i');
+                    if (i) { i.classList = 'fa fa-shhare-alt'; }
+                    var a = error.querySelector('a');
+                    if (a) {
+                        a.setAttribute('href', Pages.localizeDocsLink("https://docs.cryptpad.fr/en/user_guide/user_account.html#confidentiality"));
+                    }
+                    UI.errorLoadingScreen(error);
+                });
+
+                ctx.sframeChan.on("EV_PAD_PASSWORD", function (cfg) {
+                    UIElements.displayPasswordPrompt(funcs, cfg);
+                });
+
+                ctx.sframeChan.on("EV_RESTRICTED_ERROR", function () {
+                    UI.errorLoadingScreen(Messages.restrictedError);
+                });
+
+                ctx.sframeChan.on("EV_PAD_PASSWORD_ERROR", function () {
+                    UI.errorLoadingScreen(Messages.password_error_seed);
+                });
+
+                ctx.sframeChan.on("EV_POPUP_BLOCKED", function () {
+                    UI.alert(Messages.errorPopupBlocked);
+                });
+
+                ctx.sframeChan.on("EV_EXPIRED_ERROR", function () {
+                    funcs.onServerError({
+                        type: 'EEXPIRED'
+                    });
+                });
+
+                ctx.sframeChan.on('EV_LOADING_INFO', function (data) {
+                    //UI.updateLoadingProgress(data, 'drive');
+                    UI.updateLoadingProgress(data);
+                });
+
+                ctx.sframeChan.on('EV_NEW_VERSION', function () {
+                    // TODO lock the UI and do the same in non-framework apps
+                    var $err = $('<div>').append(Messages.newVersionError);
+                    $err.find('a').click(function () {
+                        funcs.gotoURL();
+                    });
+                    UI.findOKButton().click(); // FIXME this might be randomly clicking something dangerous...
+                    UI.errorLoadingScreen($err, true, true);
+                });
+
+                ctx.sframeChan.on('EV_AUTOSTORE_DISPLAY_POPUP', function (data) {
+                    UIElements.displayStorePadPopup(funcs, data);
+                });
+
+                ctx.sframeChan.on('EV_LOADING_ERROR', function (err) {
+                    var msg = err;
+                    if (err === 'DELETED') {
+                        msg = Messages.deletedError + '<br>' + Messages.errorRedirectToHome;
+                    }
+                    if (err === "INVALID_HASH") {
+                        msg = Messages.invalidHashError;
+                    }
+                    UI.errorLoadingScreen(msg, false, function () {
+                        funcs.gotoURL('/drive/');
+                    });
+                });
+
+                ctx.sframeChan.on('EV_UNIVERSAL_EVENT', function (obj) {
+                    var type = obj.type;
+                    if (!type || !modules[type]) { return; }
+                    modules[type].fire(obj.data);
+                });
+
+                ctx.cache = Cache.create(ctx.sframeChan);
+
+                ctx.metadataMgr.onReady(waitFor());
+
+            }).nThen(function () {
+                var privateData = ctx.metadataMgr.getPrivateData();
+                funcs.addShortcuts(window, Boolean(privateData.app));
+
+                var mt = Util.find(privateData, ['settings', 'general', 'mediatag-size']);
+                if (MT.MediaTag && typeof(mt) === "number") {
+                    var maxMtSize = mt === -1 ? Infinity : mt * 1024 * 1024;
+                    MT.MediaTag.setDefaultConfig('maxDownloadSize', maxMtSize);
+                }
+
+                if (MT.MediaTag && ctx.cache) {
+                    MT.MediaTag.setDefaultConfig('Cache', ctx.cache);
+                }
+
+                try {
+                    var feedback = privateData.feedbackAllowed;
+                    Feedback.init(feedback);
+                } catch (e) { Feedback.init(false); }
+
+                if (privateData.secureIframe) {
+                    UI.log = function (msg) { ctx.sframeChan.event('EV_ALERTIFY_LOG', msg); };
+                    UI.warn = function (msg) { ctx.sframeChan.event('EV_ALERTIFY_WARN', msg); };
+                } else {
+                    ctx.sframeChan.on('EV_ALERTIFY_LOG', function (msg) { UI.log(msg); });
+                    ctx.sframeChan.on('EV_ALERTIFY_WARN', function (msg) { UI.warn(msg); });
+                }
+
+                try {
+                    var forbidden = privateData.disabledApp;
+                    if (forbidden) {
+                        UI.alert(Messages.disabledApp, function () {
+                            funcs.gotoURL('/drive/');
+                        }, {forefront: true});
+                        return;
+                    }
+                    var mustLogin = privateData.registeredOnly;
+                    if (mustLogin) {
+                        UI.alert(Messages.mustLogin, function () {
+                            funcs.setLoginRedirect('login');
+                        }, {forefront: true});
+                        return;
+                    }
+                    var blocked = privateData.premiumOnly && privateData.isNewFile;
+                    if (blocked) {
+                        var domain = ApiConfig.httpUnsafeOrigin || 'CryptPad';
+                        if (/^http/.test(domain)) { domain = domain.replace(/^https?\:\/\//, ''); }
+                        UI.errorLoadingScreen(Messages._getKey('premiumOnly', [domain]), null, function () {
+                            funcs.gotoURL('/drive/');
+                        }, {forefront: true});
+                        return;
+                    }
+                    if (privateData.earlyAccessBlocked) {
+                        UI.errorLoadingScreen(Messages.earlyAccessBlocked, null, function () {
+                            funcs.gotoURL('/drive/');
+                        }, {forefront: true});
+                        return;
+
+                    }
+                } catch (e) {
+                    console.error("Can't check permissions for the app");
+                }
+
+                try {
+                    window.CP_DEV_MODE = privateData.devMode;
+                } catch (e) {}
+
+                ctx.sframeChan.on('EV_LOGOUT', function () {
+                    $(window).on('keyup', function (e) {
+                        if (e.keyCode === 27) {
+                            UI.removeLoadingScreen();
+                        }
+                    });
+                    UI.addLoadingScreen({hideTips: true});
+                    var origin = privateData.origin;
+                    var href = origin + "/login/";
+                    var onLogoutMsg = Messages._getKey('onLogout', ['<a href="' + href + '" target="_blank">', '</a>']);
+                    UI.errorLoadingScreen(onLogoutMsg, true);
+                    logoutHandlers.forEach(function (h) {
+                        if (typeof (h) === "function") { h(); }
+                    });
+                });
+
+                ctx.sframeChan.on('EV_WORKER_TIMEOUT', function () {
+                    var message = UI.setHTML(h('span'), Messages.timeoutError);
+                    var cb = Util.once(function () { funcs.gotoURL(''); });
+                    $(message).find('em').on('touchend', cb);
+                    UI.errorLoadingScreen(message, false, cb);
+                });
+
+                ctx.sframeChan.on('EV_CHROME_68', function () {
+                    UI.alert(Messages.chrome68);
+                });
+
+                funcs.isPadStored(function (err, val) {
+                    if (err || !val) { return; }
+                    UIElements.displayCrowdfunding(funcs);
+                });
+
+                ctx.sframeChan.ready();
+
+                Mailbox.create(funcs);
+
+                cb(funcs);
             });
-
-            ctx.sframeChan.on('EV_WORKER_TIMEOUT', function () {
-                var message = UI.setHTML(h('span'), Messages.timeoutError);
-                var cb = Util.once(function () { funcs.gotoURL(''); });
-                $(message).find('em').on('touchend', cb);
-                UI.errorLoadingScreen(message, false, cb);
-            });
-
-            ctx.sframeChan.on('EV_CHROME_68', function () {
-                UI.alert(Messages.chrome68);
-            });
-
-            funcs.isPadStored(function (err, val) {
-                if (err || !val) { return; }
-                UIElements.displayCrowdfunding(funcs);
-            });
-
-            ctx.sframeChan.ready();
-
-            Mailbox.create(funcs);
-
-            cb(funcs);
-        });
-    } };
+        } };
 });

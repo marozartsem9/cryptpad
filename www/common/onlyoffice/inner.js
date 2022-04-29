@@ -2315,24 +2315,36 @@ Uncaught TypeError: Cannot read property 'calculatedType' of null
         };
 
         var loadDocument = function (noCp, useNewDefault, i) {
-            window.parent.postMessage({ readyToAcceptFile: true }, '*');
-            const callback = function(e) {
-                if (e.data.externalFile && e.data.externalFileName) {
-                    const {externalFileName, externalFile} = e.data;
-                    window.removeEventListener('message', callback);
-
-                    debugger
-                    const u8 = new Uint8Array(externalFile);
-
-                    x2tConvertData(new Uint8Array(u8), externalFileName, 'bin', (binData, images) => {
-                        let localBlob = new Blob([binData], {type: 'plain/text'});
-
-                        startOO(localBlob, getFileType());
-                    });
-                }
-            };
-
-            window.addEventListener('message', callback);
+            if (ooLoaded) { return; }
+            var type = common.getMetadataMgr().getPrivateData().ooType;
+            var file = getFileType();
+            if (!noCp) {
+                var lastCp = getLastCp(false, i);
+                // If the last checkpoint is empty, load the "initial" doc instead
+                if (!lastCp || !lastCp.file) { return void loadDocument(true, useNewDefault); }
+                // Load latest checkpoint
+                return void loadLastDocument(lastCp, function () {
+                    // Checkpoint error: load the previous one
+                    i = i || 0;
+                    loadDocument(noCp, useNewDefault, ++i);
+                });
+            }
+            var newText;
+            switch (type) {
+                case 'sheet' :
+                    newText = EmptyCell(useNewDefault);
+                    break;
+                case 'doc':
+                    newText = EmptyDoc();
+                    break;
+                case 'presentation':
+                    newText = EmptySlide();
+                    break;
+                default:
+                    newText = '';
+            }
+            var blob = loadInitDocument(type, useNewDefault);
+            startOO(blob, file);
         };
 
         var initializing = true;
@@ -2854,13 +2866,13 @@ Uncaught TypeError: Cannot read property 'calculatedType' of null
                 if (hjson && hjson.metadata) {
                     metadataMgr.updateMetadata(hjson.metadata);
                 }
-                // if (typeof (hjson) !== 'object' || Array.isArray(hjson) ||
-                //     (hjson.metadata && typeof(hjson.metadata.type) !== 'undefined' &&
-                //      hjson.metadata.type !== 'oo')) {
-                //     var errorText = Messages.typeError;
-                //     UI.errorLoadingScreen(errorText);
-                //     throw new Error(errorText);
-                // }
+                if (typeof (hjson) !== 'object' || Array.isArray(hjson) ||
+                    (hjson.metadata && typeof(hjson.metadata.type) !== 'undefined' &&
+                     hjson.metadata.type !== 'oo')) {
+                    var errorText = Messages.typeError;
+                    UI.errorLoadingScreen(errorText);
+                    throw new Error(errorText);
+                }
                 content = hjson.content || content;
                 var newLatest = getLastCp();
                 sframeChan.query('Q_OO_SAVE', {

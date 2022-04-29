@@ -2952,7 +2952,7 @@ define([
                     });
                 }
 
-                if (!data.cache) { return; }
+                if (!data.cache) { data.cache = {}; }
 
                 // Make sure we have a valid user object before emitting cacheready
                 if (rt.proxy && !rt.proxy.drive) { return; }
